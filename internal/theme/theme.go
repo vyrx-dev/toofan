@@ -14,7 +14,7 @@ type Palette struct {
 	Success    lipgloss.Color // personal best, positive feedback
 }
 
-var All = []Palette{TokyoNight, Gruvbox, Sakura, Monkeytype, Monochrome, Forest, Espresso, Lumon, Mars, Void, Everforest}
+var All = []Palette{TokyoNight, Gruvbox, Sakura, Monkeytype, Monochrome, Forest, Espresso, Lumon, Mars, Void, Everforest, Omarchy}
 
 var Current = TokyoNight
 
