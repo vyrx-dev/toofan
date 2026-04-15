@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -11,9 +12,12 @@ import (
 var version = "dev"
 
 func main() {
-	if len(os.Args) == 2 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
+	v := flag.Bool("version", false, "Print current version")
+	flag.Parse()
+
+	if *v {
 		fmt.Println("toofan " + version)
-		return
+		os.Exit(0)
 	}
 
 	p := tea.NewProgram(tui.New(), tea.WithAltScreen())
