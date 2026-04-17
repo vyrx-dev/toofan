@@ -159,3 +159,86 @@ func GetSnippets(name string) []Snippet {
 	}
 	return nil
 }
+
+
+// Difficulty levels
+type Difficulty string
+
+const (
+	Easy   Difficulty = "easy"
+	Medium Difficulty = "medium"
+	Hard   Difficulty = "hard"
+)
+
+// GetHardWords loads difficult words from hard_words.txt
+func GetHardWords() []string {
+	raw, err := fs.ReadFile(dataFS, "data/english/hard_words.txt")
+	if err != nil {
+		// Fallback hard words if file not found
+		return []string{
+			"beautiful", "beginning", "believe", "business", "challenge",
+			"character", "committee", "definitely", "embarrass", "necessary",
+			"privilege", "recommend", "separate", "successful", "therefore",
+		}
+	}
+	return strings.Fields(string(raw))
+}
+
+// RandomWordsWithDifficulty returns words based on difficulty level
+func RandomWordsWithDifficulty(name string, count int, difficulty Difficulty) []string {
+	ld, ok := languages[name]
+	if !ok || len(ld.Words) == 0 {
+		ld = languages["english"]
+	}
+
+	easyWords := ld.Words
+	hardWords := GetHardWords()
+
+	switch difficulty {
+	case Easy:
+		return randomFromSlice(easyWords, count)
+	case Hard:
+		if len(hardWords) > 0 {
+			return randomFromSlice(hardWords, count)
+		}
+		return randomFromSlice(easyWords, count)
+	case Medium:
+		// Mix: 50% easy, 50% hard
+		easyCount := count / 2
+		hardCount := count - easyCount
+		words := randomFromSlice(easyWords, easyCount)
+		words = append(words, randomFromSlice(hardWords, hardCount)...)
+		return words
+	default:
+		return randomFromSlice(easyWords, count)
+	}
+}
+
+// randomFromSlice returns n random words from a slice
+func randomFromSlice(slice []string, count int) []string {
+	if len(slice) == 0 {
+		return []string{"hello", "world"}
+	}
+	out := make([]string, count)
+	for i := range out {
+		out[i] = slice[rand.Intn(len(slice))]
+	}
+	return out
+}
+
+// GetWordCountForDifficulty returns total available words for a difficulty
+func GetWordCountForDifficulty(difficulty Difficulty) int {
+	switch difficulty {
+	case Easy:
+		if ld, ok := languages["english"]; ok {
+			return len(ld.Words)
+		}
+	case Hard:
+		return len(GetHardWords())
+	case Medium:
+		if ld, ok := languages["english"]; ok {
+			return len(ld.Words) + len(GetHardWords())
+		}
+	}
+	return 0
+}

@@ -33,7 +33,7 @@ func (m model) handleTyping(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			} else {
 				m.mode = "words"
 			}
-			m.game = game.New(m.duration, m.mode, m.lang)
+			m.game = game.NewWithDifficulty(m.duration, m.mode, m.lang, m.difficulty)
 			m.save()
 		}
 
@@ -56,13 +56,26 @@ func (m model) handleTyping(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "ctrl+t":
 		if m.game.Started() {
-			m.game.Reset(m.mode, m.lang)
+			m.game.ResetWithDifficulty(m.mode, m.lang, m.difficulty)
 		}
 		m.pickingTheme = true
 		m.themeCur = 0
 		for i, t := range theme.All {
 			if t.Name == theme.Current.Name {
 				m.themeCur = i
+			}
+		}
+
+	case "d", "ctrl+d":
+		if !m.game.Started() {
+			m.pickingDiff = true
+			m.diffCur = 0
+			difficulties := []string{"easy", "medium", "hard"}
+			for i, d := range difficulties {
+				if d == m.difficulty {
+					m.diffCur = i
+					break
+				}
 			}
 		}
 
@@ -104,6 +117,9 @@ func (m model) viewTyping(p theme.Palette) string {
 	if m.pickingLesson {
 		return m.viewLessonPicker(p)
 	}
+	if m.pickingDiff {
+		return m.viewDifficultyPicker(p)
+	}
 	if m.pickingTheme {
 		return m.viewThemePicker(p)
 	}
@@ -117,14 +133,11 @@ func (m model) viewTyping(p theme.Palette) string {
 	lines := splitLines(m.game.Text(), textWidth, m.game.CodeMode)
 	curLine := cursorLine(lines, len(m.game.Input()))
 
-	// word mode: 3 lines (monkeytype style), code mode: 7 lines (full snippet)
 	visible := 3
 	if m.game.CodeMode {
 		visible = 7
 	}
 
-	// Paginate the display so lines don't instantly scroll up every time you hit enter.
-	// This keeps code snippets fixed in view until you finish the whole block.
 	top := (curLine / visible) * visible
 	bot := top + visible
 	if bot > len(lines) {
@@ -135,7 +148,6 @@ func (m model) viewTyping(p theme.Palette) string {
 		Padding(0, 2).
 		Render(colorText(m.game, p, lines, top, bot))
 
-	// timer at top
 	var topLine string
 	if m.game.Started() {
 		timeLeft := m.game.TimeLeft()
@@ -164,12 +176,11 @@ func (m model) viewTyping(p theme.Palette) string {
 
 	out = append(out, text)
 
-	// progress bar when typing
 	if m.game.Started() {
-		ratio := min(m.game.Stats().WPM/200.0, 1.0) // rough estimate
+		ratio := min(m.game.Stats().WPM/200.0, 1.0)
 		if m.game.Duration() > 0 {
 			ratio = min(float64(m.game.TimeLeft())/float64(m.game.Duration()), 1.0)
-			ratio = 1.0 - ratio // invert for progress
+			ratio = 1.0 - ratio
 		} else {
 			if len(m.game.Text()) > 0 {
 				ratio = min(float64(len(m.game.Input()))/float64(len(m.game.Text())), 1.0)
@@ -182,14 +193,17 @@ func (m model) viewTyping(p theme.Palette) string {
 		out = append(out, "", bar)
 
 	} else {
-		// before test: subtle info line
 		var modeLabel string
 		if m.mode == "code" {
 			modeLabel = "code (" + m.lang + ")"
 		} else {
 			modeLabel = "words"
 		}
-		info := dim.Render(modeLabel + " · ? help")
+		difficultyLabel := m.difficulty
+		if difficultyLabel == "" {
+			difficultyLabel = "easy"
+		}
+		info := dim.Render(modeLabel + " · difficulty: " + difficultyLabel + " · ? help · d=change")
 		out = append(out, "", info)
 	}
 
@@ -198,6 +212,34 @@ func (m model) viewTyping(p theme.Palette) string {
 	return body
 }
 
+// viewDifficultyPicker displays the difficulty selection menu
+func (m model) viewDifficultyPicker(p theme.Palette) string {
+	dim := lipgloss.NewStyle().Foreground(p.Foreground)
+	hi := lipgloss.NewStyle().Foreground(p.Accent)
+
+	difficulties := []string{"easy", "medium", "hard"}
+	var lines []string
+
+	lines = append(lines, hi.Render("difficulty"), "")
+
+	for i, d := range difficulties {
+		prefix := "○ "
+		if i == m.diffCur {
+			prefix = hi.Render("● ")
+		} else {
+			prefix = dim.Render("○ ")
+		}
+		
+		style := dim
+		if i == m.diffCur {
+			style = hi
+		}
+		lines = append(lines, prefix+style.Render(d))
+	}
+
+	lines = append(lines, "", dim.Render("↑↓ move · enter · esc"))
+	return lipgloss.JoinVertical(lipgloss.Left, lines...)
+}
 func (m model) viewHelp(p theme.Palette) string {
 	dim := lipgloss.NewStyle().Foreground(p.Foreground)
 	hi := lipgloss.NewStyle().Foreground(p.Accent)
@@ -209,6 +251,7 @@ func (m model) viewHelp(p theme.Palette) string {
 		val.Render("ctrl+w") + dim.Render("    toggle words/code"),
 		val.Render("ctrl+l") + dim.Render("    change language (code mode only)"),
 		val.Render("ctrl+o") + dim.Render("    change lesson (code mode only)"),
+		val.Render("d") + dim.Render("           change difficulty (easy/medium/hard)"),
 		val.Render("ctrl+t") + dim.Render("    change theme"),
 		val.Render("ctrl+p") + dim.Render("    open profile"),
 		val.Render("tab") + dim.Render("       change duration & restart"),

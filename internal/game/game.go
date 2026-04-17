@@ -28,22 +28,30 @@ type Game struct {
 	elapsed   time.Duration
 	lastTyped time.Time
 	LastTick  time.Time
+
+	Difficulty string // Track current difficulty level
 }
 
 // Accessors for fields that TUI needs to read
-func (g *Game) Text() string         { return g.text }
-func (g *Game) Input() string        { return g.input }
-func (g *Game) Errors() map[int]bool { return g.errors }
-func (g *Game) Started() bool        { return g.started }
-func (g *Game) Duration() int        { return g.duration }
+func (g *Game) Text() string           { return g.text }
+func (g *Game) Input() string          { return g.input }
+func (g *Game) Errors() map[int]bool   { return g.errors }
+func (g *Game) Started() bool          { return g.started }
+func (g *Game) Duration() int          { return g.duration }
 func (g *Game) Elapsed() time.Duration { return g.elapsed }
-func (g *Game) SetText(s string)     { g.text = normalizeTabs(s) }
+func (g *Game) SetText(s string)       { g.text = normalizeTabs(s) }
 
 func New(duration int, mode string, language string) *Game {
+	return NewWithDifficulty(duration, mode, language, "easy")
+}
+
+// NewWithDifficulty creates a game with specific difficulty level
+func NewWithDifficulty(duration int, mode string, language string, difficulty string) *Game {
 	g := &Game{
-		duration:  duration, // 0 means infinite mode (tied to length of snippet)
-		errors:    make(map[int]bool),
-		mistakeAt: make(map[int]bool),
+		duration:   duration,
+		errors:     make(map[int]bool),
+		mistakeAt:  make(map[int]bool),
+		Difficulty: difficulty,
 	}
 
 	if mode == "code" {
@@ -51,7 +59,7 @@ func New(duration int, mode string, language string) *Game {
 		g.Snippet = lang.RandomSnippet(language)
 		g.text = normalizeTabs(g.Snippet.Content)
 	} else {
-		words := lang.RandomWords("english", 200)
+		words := lang.RandomWordsWithDifficulty("english", 200, lang.Difficulty(difficulty))
 		g.text = strings.Join(words, " ")
 	}
 
@@ -250,13 +258,19 @@ func (g *Game) ErrorWords() []string {
 }
 
 func (g *Game) Reset(mode string, language string) {
+	g.ResetWithDifficulty(mode, language, g.Difficulty)
+}
+
+// ResetWithDifficulty resets the game with a new difficulty level
+func (g *Game) ResetWithDifficulty(mode string, language string, difficulty string) {
+	g.Difficulty = difficulty
 	if mode == "code" {
 		g.CodeMode = true
 		g.Snippet = lang.RandomSnippet(language)
 		g.text = normalizeTabs(g.Snippet.Content)
 	} else {
 		g.CodeMode = false
-		words := lang.RandomWords("english", 200)
+		words := lang.RandomWordsWithDifficulty("english", 200, lang.Difficulty(difficulty))
 		g.text = strings.Join(words, " ")
 	}
 	g.input = ""

@@ -24,7 +24,7 @@ type model struct {
 	active   screen
 	game     *game.Game
 	duration int
-	mode     string // "words" or "code"
+	mode     string
 	lang     string
 
 	width, height int
@@ -38,6 +38,10 @@ type model struct {
 	pickingTheme  bool
 	themeCur      int
 	showHelp      bool
+
+	pickingDiff bool
+	diffCur     int
+	difficulty  string
 
 	result        game.Stats
 	pb            float64
@@ -60,17 +64,18 @@ func New() model {
 	theme.Current = theme.ByName(th)
 
 	return model{
-		game:     game.New(duration, mode, language),
-		duration: duration,
-		mode:     mode,
-		lang:     language,
+		game:       game.NewWithDifficulty(duration, mode, language, "easy"),
+		duration:   duration,
+		mode:       mode,
+		lang:       language,
+		difficulty: "easy",
 	}
 }
 
 type tick time.Time
 
 func (m model) isPaused() bool {
-	return m.pickingDur || m.pickingLang || m.pickingLesson || m.pickingTheme || m.showHelp
+	return m.pickingDur || m.pickingLang || m.pickingLesson || m.pickingTheme || m.pickingDiff || m.showHelp
 }
 
 func (m model) Init() tea.Cmd {
@@ -184,7 +189,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "enter":
 				m.duration = durations[m.durCur]
 				m.pickingDur = false
-				m.game = game.New(m.duration, m.mode, m.lang)
+				m.game = game.NewWithDifficulty(m.duration, m.mode, m.lang, m.difficulty)
 				m.save()
 				return m, nil
 			case "esc":
@@ -192,7 +197,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			default:
 				m.pickingDur = false
-				// fallthrough to handleTyping so the key is typed
 			}
 		}
 		if m.pickingLang {
@@ -203,6 +207,30 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if m.pickingTheme {
 			return m.handleThemePicker(msg)
+		}
+		if m.pickingDiff {
+			switch msg.String() {
+			case "up", "k", "left", "h":
+				if m.diffCur > 0 {
+					m.diffCur--
+				}
+				return m, nil
+			case "down", "j", "right", "l":
+				if m.diffCur < 2 {
+					m.diffCur++
+				}
+				return m, nil
+			case "enter":
+				difficulties := []string{"easy", "medium", "hard"}
+				m.difficulty = difficulties[m.diffCur]
+				m.pickingDiff = false
+				m.game = game.NewWithDifficulty(m.duration, m.mode, m.lang, m.difficulty)
+				m.save()
+				return m, nil
+			case "esc":
+				m.pickingDiff = false
+				return m, nil
+			}
 		}
 
 		switch m.active {
