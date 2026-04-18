@@ -200,7 +200,7 @@ func (m model) viewProfile(p theme.Palette) string {
 	if m.width > 0 && m.width < 92 {
 		fullWidth = m.width - 6
 	}
-	paneWidth := (fullWidth - 4) / 3 // 2 gaps of 2 char each
+	paneWidth := (fullWidth - 2) / 3 // 2 gaps of 1 char each
 
 	paneStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
@@ -358,7 +358,7 @@ func (m model) viewProfile(p theme.Palette) string {
 	bestBox = paneStyle.Width(paneWidth).Height(maxH - 2).Render(bests)
 	ranksBox = paneStyle.Width(paneWidth).Height(maxH - 2).Render(ranks)
 
-	topRow := lipgloss.JoinHorizontal(lipgloss.Top, overviewBox, "  ", bestBox, "  ", ranksBox)
+	topRow := lipgloss.JoinHorizontal(lipgloss.Top, overviewBox, " ", bestBox, " ", ranksBox)
 
 	var histRows []string
 	header := lipgloss.JoinHorizontal(lipgloss.Left,
