@@ -64,11 +64,12 @@ func New() model {
 	theme.Current = theme.ByName(th)
 
 	return model{
-		game:     game.New(duration, mode, language, difficulty),
-		duration: duration,
-		mode:     mode,
-		lang:     language,
+		game:       game.New(duration, mode, language, difficulty),
+		duration:   duration,
+		mode:       mode,
+		lang:       language,
 		difficulty: difficulty,
+		pb:         game.GetPB(duration, mode),
 	}
 }
 
@@ -97,6 +98,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.game.LastTick = time.Time(msg)
 			} else {
 				m.game.Tick(time.Time(msg))
+				m.game.UpdateGhost(m.pb)
 				if m.game.Finished() {
 					m.result = m.game.Stats()
 					m.pb = game.GetPB(m.duration, m.mode)
@@ -190,6 +192,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.duration = durations[m.durCur]
 				m.pickingDur = false
 				m.game = game.New(m.duration, m.mode, m.lang, m.difficulty)
+				m.pb = game.GetPB(m.duration, m.mode)
 				m.save()
 				return m, nil
 			case "esc":

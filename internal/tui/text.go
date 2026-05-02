@@ -16,6 +16,7 @@ func colorText(g *game.Game, p theme.Palette, lines []string, top, bot int) stri
 	dim := lipgloss.NewStyle().Foreground(p.Foreground)
 
 	typed := len(g.Input())
+	ghost := g.GhostPosition()
 
 	// character offset at top of visible window
 	startPos := 0
@@ -33,16 +34,23 @@ func colorText(g *game.Game, p theme.Palette, lines []string, top, bot int) stri
 		}
 		for _, ch := range lines[i] {
 			s := string(ch)
+			var style lipgloss.Style
 			switch {
 			case pos < typed && g.Errors()[pos]:
-				out.WriteString(bad.Render(s))
+				style = bad
 			case pos < typed:
-				out.WriteString(ok.Render(s))
+				style = ok
 			case pos == typed:
-				out.WriteString(cur.Render(s))
+				style = cur
 			default:
-				out.WriteString(dim.Render(s))
+				style = dim
 			}
+
+			if pos == ghost && pos != typed {
+				style = style.Copy().Underline(true)
+			}
+
+			out.WriteString(style.Render(s))
 			pos++
 		}
 	}

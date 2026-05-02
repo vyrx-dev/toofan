@@ -25,6 +25,7 @@ type Game struct {
 	duration  int
 	CodeMode  bool // true = snippet-based typing, false = standard words
 	difficulty string
+	GhostPos   int
 
 	elapsed   time.Duration
 	lastTyped time.Time
@@ -38,7 +39,16 @@ func (g *Game) Errors() map[int]bool { return g.errors }
 func (g *Game) Started() bool        { return g.started }
 func (g *Game) Duration() int        { return g.duration }
 func (g *Game) Elapsed() time.Duration { return g.elapsed }
+func (g *Game) GhostPosition() int   { return g.GhostPos }
 func (g *Game) SetText(s string)     { g.text = normalizeTabs(s) }
+
+func (g *Game) UpdateGhost(pbWPM float64) {
+	if !g.started || pbWPM <= 0 {
+		return
+	}
+	elapsed := g.elapsed.Seconds()
+	g.GhostPos = int((pbWPM * 5.0 * elapsed) / 60.0)
+}
 
 func New(duration int, mode string, language string, difficulty string) *Game {
 	g := &Game{

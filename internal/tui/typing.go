@@ -46,6 +46,7 @@ func (m model) handleTyping(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.mode = "words"
 			}
 			m.game = game.New(m.duration, m.mode, m.lang, m.difficulty)
+			m.pb = game.GetPB(m.duration, m.mode)
 			m.save()
 		}
 
