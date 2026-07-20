@@ -69,7 +69,42 @@ paru -S toofan-bin
 go install github.com/vyrx-dev/toofan@latest
 ```
 
-### Homebrew / Nix / Ubuntu / Fedora
+### NixOS / Nix
+
+### Try without installing using flake
+
+```bash
+nix run github:vyrx-dev/toofan
+```
+
+### Install using flake
+
+1. Add flake input:
+
+
+```nix
+toofan = {
+  url = "github:vyrx-dev/toofan";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+
+```
+
+2. Add package to `environment.systemPackages` (for global install) or homeManager `home.packages` (for user install):
+
+
+```nix
+environment.systemPackages = [ inputs.toofan.packages.${pkgs.stdenv.hostPlatform.system}.default ];
+
+```
+
+or
+
+```nix
+home.packages = [ inputs.toofan.packages.${pkgs.stdenv.hostPlatform.system}.default ];
+```
+
+### Homebrew / Ubuntu / Fedora
 
 Coming soon.
 
