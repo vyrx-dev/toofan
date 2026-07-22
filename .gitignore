@@ -1,6 +1,9 @@
 # build output
 toofan
 
+## nix
+/result
+
 # editor
 .idea/
 .vscode/
@@ -16,3 +19,6 @@ Thumbs.db
 *.exe
 *.test
 *.out
+
+# devenv
+.direnv/
