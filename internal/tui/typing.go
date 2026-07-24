@@ -266,6 +266,7 @@ func (m model) viewHelp(p theme.Palette) string {
 		val.Render("ctrl+p") + dim.Render("    open profile"),
 		val.Render("ctrl+d") + dim.Render("    change difficulty (words mode only)"),
 		val.Render("ctrl+g") + dim.Render("    race against previous run"),
+		val.Render("ctrl+c") + dim.Render("    exit toofan"),
 		val.Render("tab") + dim.Render("       restart test"),
 		val.Render("esc") + dim.Render("       configure duration"),
 		val.Render("e") + dim.Render("         view error words (results screen)"),
