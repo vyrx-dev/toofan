@@ -328,7 +328,7 @@ func (m model) handleRaceServerMsg(msg game.ServerMsg) (model, tea.Cmd) {
 	case "joined":
 		var payload game.LobbyPayload
 		if err := json.Unmarshal(msg.Payload, &payload); err != nil {
-			return m, nil
+			return m, m.listenRaceMsg()
 		}
 		m.raceClient.SetRoom(payload.Room)
 		m.onlineRoomID = payload.Room
@@ -376,13 +376,15 @@ func (m model) handleRaceServerMsg(msg game.ServerMsg) (model, tea.Cmd) {
 
 	case "countdown":
 		var payload game.CountdownPayload
-		json.Unmarshal(msg.Payload, &payload)
+		if err := json.Unmarshal(msg.Payload, &payload); err != nil {
+			return m, m.listenRaceMsg()
+		}
 		m.raceState = onlineCountdown
 
 	case "start":
 		var payload game.StartPayload
 		if err := json.Unmarshal(msg.Payload, &payload); err != nil {
-			return m, nil
+			return m, m.listenRaceMsg()
 		}
 		m.raceText = payload.Text
 		
@@ -405,7 +407,9 @@ func (m model) handleRaceServerMsg(msg game.ServerMsg) (model, tea.Cmd) {
 
 	case "progress":
 		var payload game.ProgressPayload
-		json.Unmarshal(msg.Payload, &payload)
+		if err := json.Unmarshal(msg.Payload, &payload); err != nil {
+			return m, m.listenRaceMsg()
+		}
 		for i := range payload.Players {
 			if m.raceClient != nil && payload.Players[i].Name == m.raceClient.Name() {
 				payload.Players[i].IsUser = true
@@ -421,7 +425,9 @@ func (m model) handleRaceServerMsg(msg game.ServerMsg) (model, tea.Cmd) {
 		}
 
 		var payload game.FinishPayload
-		json.Unmarshal(msg.Payload, &payload)
+		if err := json.Unmarshal(msg.Payload, &payload); err != nil {
+			return m, m.listenRaceMsg()
+		}
 		for i := range payload.Placements {
 			if m.raceClient != nil && payload.Placements[i].Name == m.raceClient.Name() {
 				payload.Placements[i].IsUser = true
@@ -435,7 +441,9 @@ func (m model) handleRaceServerMsg(msg game.ServerMsg) (model, tea.Cmd) {
 
 	case "online":
 		var payload game.OnlinePayload
-		json.Unmarshal(msg.Payload, &payload)
+		if err := json.Unmarshal(msg.Payload, &payload); err != nil {
+			return m, m.listenRaceMsg()
+		}
 		m.onlineCount = payload.Count
 
 	case "disconnected":
@@ -453,6 +461,9 @@ func (m model) handleJoinResult(msg joinResultMsg) (model, tea.Cmd) {
 		m.msgTime = time.Now()
 		m.pickingOnline = false
 		m.raceState = onlineOff
+		if m.raceClient != nil {
+			m.raceClient.Close()
+		}
 		m.raceClient = nil
 		return m, nil
 	}

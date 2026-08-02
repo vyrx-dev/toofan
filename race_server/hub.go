@@ -1,8 +1,10 @@
 package main
 
 import (
+	crand "crypto/rand"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"strings"
 	"sync"
@@ -39,9 +41,8 @@ func (h *hub) onlineCount() int {
 
 func (h *hub) removeClient(c *client) {
 	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	if c.closed {
+		h.mu.Unlock()
 		return
 	}
 	c.closed = true
@@ -49,24 +50,31 @@ func (h *hub) removeClient(c *client) {
 	close(c.done)
 	log.Printf("client %s disconnected from %s", c.name, c.ip)
 
-	if r, ok := h.rooms[c.room]; ok {
+	r, ok := h.rooms[c.room]
+	count := 0
+	started := false
+	if ok {
 		r.removePlayer(c)
 
 		r.mu.Lock()
-		count := len(r.players)
-		started := r.started
+		count = len(r.players)
+		started = r.started
 		r.mu.Unlock()
 
 		if count == 0 {
 			r.close()
 			delete(h.rooms, r.id)
-		} else {
-			if !started {
-				r.broadcastLobby()
-			} else {
-				r.broadcastProgress()
-			}
 		}
+	}
+	h.mu.Unlock()
+
+	if !ok || count == 0 {
+		return
+	}
+	if !started {
+		r.broadcastLobby()
+	} else {
+		r.broadcastProgress()
 	}
 }
 
@@ -79,11 +87,28 @@ func (h *hub) getRoom(id string) *room {
 func generateRoomID() string {
 	const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 	b := make([]byte, 4)
+	if _, err := crand.Read(b); err != nil {
+		// crypto/rand unavailable: fall back to math/rand (auto-seeded since Go 1.20).
+		for i := range b {
+			b[i] = chars[rand.Intn(len(chars))]
+		}
+		return string(b)
+	}
+	// 256 is an exact multiple of len(chars), so the modulo is uniform.
 	for i := range b {
-		b[i] = chars[time.Now().UnixNano()%int64(len(chars))]
-		time.Sleep(1 * time.Nanosecond)
+		b[i] = chars[int(b[i])%len(chars)]
 	}
 	return string(b)
+}
+
+// uniqueRoomID returns a room ID not already in use. Caller must hold h.mu.
+func (h *hub) uniqueRoomID() string {
+	for {
+		id := generateRoomID()
+		if _, exists := h.rooms[id]; !exists {
+			return id
+		}
+	}
 }
 
 func (h *hub) serveJoin(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +140,7 @@ func (h *hub) serveJoin(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	var rm *room
 	if isCreate {
-		roomID = generateRoomID()
+		roomID = h.uniqueRoomID()
 		size := 2
 		fmt.Sscanf(r.URL.Query().Get("size"), "%d", &size)
 		dur := 30
@@ -143,7 +168,7 @@ func (h *hub) serveJoin(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "invalid pin", http.StatusForbidden)
 			return
 		}
-		if len(rm.players) >= rm.maxPlayers {
+		if rm.playerCount() >= rm.maxPlayers {
 			h.mu.Unlock()
 			http.Error(w, "room full", http.StatusForbidden)
 			return
@@ -152,7 +177,7 @@ func (h *hub) serveJoin(w http.ResponseWriter, r *http.Request) {
 		// auto-match in public rooms.
 		// no_rooms=true means queue for random 1v1 only (never join custom-sized rooms).
 		for _, ex := range h.rooms {
-			if ex.started || ex.pin != "" || len(ex.players) >= ex.maxPlayers {
+			if ex.isStarted() || ex.pin != "" || ex.playerCount() >= ex.maxPlayers {
 				continue
 			}
 			if noRooms && ex.maxPlayers != 2 {
@@ -165,7 +190,7 @@ func (h *hub) serveJoin(w http.ResponseWriter, r *http.Request) {
 				break
 		}
 		if rm == nil {
-			roomID = generateRoomID()
+			roomID = h.uniqueRoomID()
 			// default quick queue room
 			rm = newRoom(h, roomID, "", 2, "medium", "words", "english", 30, name, true)
 			h.rooms[roomID] = rm

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -68,6 +69,11 @@ type OnlinePayload struct {
 	Count int `json:"count"`
 }
 
+type progressUpdate struct {
+	progress float64
+	wpm      float64
+}
+
 type RaceClient struct {
 	serverURL string
 	room      string
@@ -77,19 +83,26 @@ type RaceClient struct {
 	mu        sync.Mutex
 	closed    bool
 	client    *http.Client
+
+	progressMu sync.Mutex
+	latest     progressUpdate
+	progCh     chan struct{}
 }
 
 func NewRaceClient(serverURL, username string) *RaceClient {
 	if serverURL == "" {
 		serverURL = DefaultServerURL
 	}
-	return &RaceClient{
+	c := &RaceClient{
 		serverURL: strings.TrimRight(serverURL, "/"),
 		name:      username,
 		msgs:      make(chan ServerMsg, 64),
 		done:      make(chan struct{}),
 		client:    &http.Client{Timeout: 0},
+		progCh:    make(chan struct{}, 1),
 	}
+	go c.progressSender()
+	return c
 }
 
 func (c *RaceClient) Join(roomID, pin string, isCreate bool, size int, difficulty, mode, lang string, duration int, autoStart bool) error {
@@ -143,6 +156,7 @@ func (c *RaceClient) readSSE(body io.ReadCloser) {
 
 		var msg ServerMsg
 		if err := json.Unmarshal([]byte(data), &msg); err != nil {
+			log.Printf("race: dropping invalid server message: %v", err)
 			continue
 		}
 
@@ -158,28 +172,65 @@ func (c *RaceClient) Messages() <-chan ServerMsg {
 	return c.msgs
 }
 
+// SendProgress queues a progress update. Only the latest value is ever sent:
+// a single background goroutine (progressSender) coalesces updates, so the TUI
+// never spawns one goroutine per keystroke.
 func (c *RaceClient) SendProgress(progress float64, wpm float64) error {
 	c.mu.Lock()
-	if c.closed {
-		c.mu.Unlock()
+	closed := c.closed
+	c.mu.Unlock()
+	if closed {
 		return nil
 	}
+
+	c.progressMu.Lock()
+	c.latest = progressUpdate{progress: progress, wpm: wpm}
+	c.progressMu.Unlock()
+	select {
+	case c.progCh <- struct{}{}:
+	default:
+	}
+	return nil
+}
+
+func (c *RaceClient) progressSender() {
+	for {
+		select {
+		case <-c.progCh:
+			c.sendLatest()
+		case <-c.done:
+			return
+		}
+	}
+}
+
+func (c *RaceClient) sendLatest() {
+	c.progressMu.Lock()
+	u := c.latest
+	c.progressMu.Unlock()
+
+	c.mu.Lock()
+	room := c.room
+	name := c.name
 	c.mu.Unlock()
 
+	c.postProgress(room, name, u)
+}
+
+func (c *RaceClient) postProgress(room, name string, u progressUpdate) {
 	body := map[string]interface{}{
-		"name":     c.name,
-		"room":     c.room,
-		"progress": progress,
-		"wpm":      wpm,
+		"name":     name,
+		"room":     room,
+		"progress": u.progress,
+		"wpm":      u.wpm,
 	}
 	data, _ := json.Marshal(body)
 
 	resp, err := c.client.Post(c.serverURL+"/race/progress", "application/json", bytes.NewReader(data))
 	if err != nil {
-		return err
+		return
 	}
 	resp.Body.Close()
-	return nil
 }
 
 func (c *RaceClient) SetRoom(room string) {
@@ -221,11 +272,26 @@ func (c *RaceClient) StartRace() error {
 
 func (c *RaceClient) Close() {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	if c.closed {
+		c.mu.Unlock()
 		return
 	}
 	c.closed = true
+	room := c.room
+	name := c.name
+	c.mu.Unlock()
+
+	// Flush a pending progress update (e.g. the final 1.0) before the sender
+	// exits. Fire-and-forget so a wedged connection can't block the TUI.
+	select {
+	case <-c.progCh:
+		c.progressMu.Lock()
+		u := c.latest
+		c.progressMu.Unlock()
+		go c.postProgress(room, name, u)
+	default:
+	}
+
 	close(c.done)
 }
 

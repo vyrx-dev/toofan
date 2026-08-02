@@ -24,6 +24,7 @@ func main() {
 
 		var update ProgressUpdate
 		if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+			log.Printf("progress: bad json from %s: %v", r.RemoteAddr, err)
 			http.Error(w, "bad json", http.StatusBadRequest)
 			return
 		}
@@ -46,6 +47,7 @@ func main() {
 		}
 		var req StartRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			log.Printf("start: bad json from %s: %v", r.RemoteAddr, err)
 			http.Error(w, "bad json", http.StatusBadRequest)
 			return
 		}

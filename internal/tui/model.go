@@ -149,7 +149,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						prog = float64(len(m.game.Input())) / float64(len(m.game.Text()))
 					}
 					wpm := m.game.Stats().WPM
-					go m.raceClient.SendProgress(prog, wpm)
+					m.raceClient.SendProgress(prog, wpm)
 				}
 
 				if m.game.Finished() {
@@ -167,9 +167,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 
 					if m.raceState == onlineRacing {
-						if m.raceClient != nil {
-							go m.raceClient.SendProgress(1.0, m.result.WPM)
-						}
+					if m.raceClient != nil {
+						m.raceClient.SendProgress(1.0, m.result.WPM)
+					}
 						m.raceState = onlineResults
 					}
 					m.active = screenResults

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"sort"
 	"sync"
 	"time"
 )
@@ -24,6 +25,7 @@ type room struct {
 	maxPlayers int
 	started    bool
 	counting   bool
+	finished   bool
 	startTime  time.Time
 	text       string
 	closed     bool
@@ -77,7 +79,20 @@ func (r *room) removePlayer(c *client) {
 	log.Printf("room=%s player_leave name=%s players=%d/%d", r.id, c.name, len(r.players), r.maxPlayers)
 }
 
+// playerCount returns the number of players. It locks r.mu so callers never
+// read r.players while holding only the hub lock.
+func (r *room) playerCount() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return len(r.players)
+}
 
+// isStarted reports whether the race has begun. See playerCount.
+func (r *room) isStarted() bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.started
+}
 
 func (r *room) broadcast(msg ServerMsg) {
 	data := marshal(msg)
@@ -92,6 +107,11 @@ func (r *room) broadcast(msg ServerMsg) {
 }
 
 func (r *room) broadcastLobby() {
+	// Grab the online count before taking r.mu: hub.onlineCount locks h.mu, and
+	// serveJoin locks h.mu then r.mu. Acquiring h.mu while holding r.mu would
+	// invert that order and deadlock.
+	online := r.hub.onlineCount()
+
 	r.mu.Lock()
 	state := "lobby"
 	if r.started {
@@ -114,7 +134,7 @@ func (r *room) broadcastLobby() {
 		Payload: JoinMsg{
 			Room:       r.id,
 			Players:    r.playerNamesLocked(),
-			Online:     r.hub.onlineCount(),
+			Online:     online,
 			Host:       r.host,
 			AutoStart:  r.autoStart,
 			CanStart:   r.canStartLocked(),
@@ -232,13 +252,16 @@ func (r *room) forceFinish() {
 		return
 	}
 	
-	// Only finish if not already finished by allDone in broadcastProgress
+	// Only finish if not already finished by allDone in broadcastProgress.
+	// The check-and-set happen under r.mu so the race can't be finished twice.
+	if r.finished {
+		r.mu.Unlock()
+		return
+	}
+	r.finished = true
+
 	players := make([]PlayerProgress, 0, len(r.players))
-	alreadyFinished := true
 	for _, p := range r.players {
-		if !p.finished {
-			alreadyFinished = false
-		}
 		players = append(players, PlayerProgress{
 			Name:     p.name,
 			Progress: p.progress,
@@ -248,18 +271,10 @@ func (r *room) forceFinish() {
 	}
 	r.mu.Unlock()
 
-	if alreadyFinished {
-		return
-	}
-
 	// sort by progress desc
-	for i := 0; i < len(players); i++ {
-		for j := i + 1; j < len(players); j++ {
-			if players[j].Progress > players[i].Progress {
-				players[i], players[j] = players[j], players[i]
-			}
-		}
-	}
+	sort.Slice(players, func(i, j int) bool {
+		return players[i].Progress > players[j].Progress
+	})
 
 	r.broadcast(ServerMsg{Type: "finish", Payload: FinishMsg{Placements: players}})
 	log.Printf("room=%s race_finish reason=timeout players=%d", r.id, len(players))
@@ -301,13 +316,9 @@ func (r *room) broadcastProgress() {
 	}
 
 	// sort by progress desc
-	for i := 0; i < len(players); i++ {
-		for j := i + 1; j < len(players); j++ {
-			if players[j].Progress > players[i].Progress {
-				players[i], players[j] = players[j], players[i]
-			}
-		}
-	}
+	sort.Slice(players, func(i, j int) bool {
+		return players[i].Progress > players[j].Progress
+	})
 
 	data := marshal(ServerMsg{Type: "progress", Payload: ProgressMsg{Players: players}})
 	for c := range r.players {
@@ -317,7 +328,10 @@ func (r *room) broadcastProgress() {
 		}
 	}
 
-	if allDone {
+	// Send the finish message exactly once: guard with r.finished under r.mu
+	// so forceFinish can't double-finish the same race.
+	if allDone && !r.finished {
+		r.finished = true
 		finishData := marshal(ServerMsg{Type: "finish", Payload: FinishMsg{Placements: players}})
 		for c := range r.players {
 			select {
