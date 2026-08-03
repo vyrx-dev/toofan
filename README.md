@@ -139,11 +139,11 @@ accuracy = (total_chars - all_mistakes) / total_chars × 100
 <details>
 <summary>Where are my files stored?</summary>
 
-Everything lives in `~/.config/toofan/` as plain text files:
+Everything lives in `~/.config/toofan/`:
 
-- `config.txt` : Your selected duration, mode, language, and theme
-- `results.txt` : Every test result (date, wpm, accuracy, duration, mode)
-- `pb.txt` : Your personal bests per mode and duration
+- `config.json` : Your selected duration, mode, language, theme, and personal bests
+- `results.jsonl` : Every test result (one JSON object per line)
+- `races.jsonl` : Your recent race-against-yourself results (capped at 10)
 </details>
 
 <details>
@@ -199,7 +199,7 @@ _(If you built it from source and moved it globally, run `sudo rm /usr/local/bin
 
 Yes. Everything runs locally and is embedded in the binary. No internet needed.
 
-But there’s currently a pending [PR-50](https://github.com/vyrx-dev/toofan/pull/50) for `toofan-online`, which will add multiplayer support. It’s going to be a separate package from the main branch so the original offline experience stays exactly as promised.
+Looking for multiplayer and bot racing? Check out the [`toofan-online`](https://github.com/vyrx-dev/toofan/tree/toofan-online) branch — it's a separate build that adds online races and AI bots while keeping solo mode fully offline.
 
 </details>
 
@@ -214,9 +214,10 @@ We're always looking to add more. If your favorite programming language isn't su
 
 - [x] Curl script installation (macOS & Linux)
 - [x] Proper documentation for AI and contributors
-- [ ] More language support
+- [x] More language support (Go, Rust, Python, C, C++, C#, TypeScript, Java)
 - [x] Difficulty levels for english words
-- [ ] AUR, Homebrew, Nix packages
+- [x] AUR and Nix packages
+- [ ] Homebrew, Fedora & Ubuntu repos
 - [x] Fix top pane alignment to match bottom panes in profile
 
 ## Contributing
