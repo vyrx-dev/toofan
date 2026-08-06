@@ -41,8 +41,14 @@ func (m model) handleResults(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	if m.raceState == onlineResults {
+		m.disconnectRace()
+	}
+
 	m.game = game.New(m.duration, m.mode, m.lang, m.difficulty)
 	m.showingErrors = false
+	m.bots = nil
+	m.botLastTick = time.Time{}
 	m.active = screenTyping
 	return m, nil
 }
@@ -74,6 +80,7 @@ func (m model) viewResults(p theme.Palette) string {
 	hi := lipgloss.NewStyle().Foreground(p.Accent).Bold(true)
 	errStyle := lipgloss.NewStyle().Foreground(p.Error)
 	italic := lipgloss.NewStyle().Foreground(p.Foreground).Italic(true)
+	success := lipgloss.NewStyle().Foreground(p.Success)
 
 	r := m.result
 
@@ -92,23 +99,29 @@ func (m model) viewResults(p theme.Palette) string {
 		errStr = errStyle.Render(fmt.Sprintf("%d", r.Mistakes))
 	}
 
-	cw := 10
-	statBlock := func(label, value string) string {
-		return lipgloss.NewStyle().Width(cw).Align(lipgloss.Center).Render(
-			lipgloss.JoinVertical(lipgloss.Center, dim.Render(label), value),
-		)
+	// Main WPM highlight
+	wpmTitle := dim.Render("wpm")
+	wpmValue := hi.Render(fmt.Sprintf("%.0f", r.WPM))
+	
+	// Acc highlight
+	accTitle := dim.Render("accuracy")
+	accValue := val.Render(fmt.Sprintf("%.0f%%", r.Accuracy))
+
+	// secondary stats
+	secStat := func(label, value string) string {
+		return lipgloss.JoinVertical(lipgloss.Center, dim.Render(label), value)
 	}
 
-	stats := lipgloss.JoinHorizontal(lipgloss.Top,
-		statBlock("wpm", hi.Render(fmt.Sprintf("%.0f", r.WPM))),
-		statBlock("acc", val.Render(fmt.Sprintf("%.0f%%", r.Accuracy))),
-		statBlock("raw", val.Render(fmt.Sprintf("%.0f", r.Raw))),
-		statBlock("typos", errStr),
-		statBlock("time", val.Render(timeStr)),
+	statsGrid := lipgloss.JoinHorizontal(lipgloss.Top,
+		lipgloss.NewStyle().Padding(0, 4).Render(lipgloss.JoinVertical(lipgloss.Center, wpmTitle, wpmValue)),
+		lipgloss.NewStyle().Padding(0, 4).Render(lipgloss.JoinVertical(lipgloss.Center, accTitle, accValue)),
+		lipgloss.NewStyle().Padding(0, 4).Render(secStat("raw", val.Render(fmt.Sprintf("%.0f", r.Raw)))),
+		lipgloss.NewStyle().Padding(0, 4).Render(secStat("typos", errStr)),
+		lipgloss.NewStyle().Padding(0, 4).Render(secStat("time", val.Render(timeStr))),
 	)
 
 	var out []string
-	out = append(out, "", stats, "", "")
+	out = append(out, "", statsGrid, "")
 
 	sassy := getSassyLine(r.WPM)
 	if sassy != "" {
@@ -116,11 +129,27 @@ func (m model) viewResults(p theme.Palette) string {
 	}
 
 	if m.gotNewPB {
-		pb := lipgloss.NewStyle().Foreground(p.Success).Render(fmt.Sprintf("new pb  %.0f → %.0f", m.pb, r.WPM))
-		out = append(out, pb)
+		pbLine := success.Bold(true).Render(fmt.Sprintf("★ NEW PB!  %.0f → %.0f", m.pb, r.WPM))
+		out = append(out, pbLine)
 	} else if m.pb > 0 {
-		out = append(out, dim.Render(fmt.Sprintf("pb %.0f", m.pb)))
+		out = append(out, dim.Render(fmt.Sprintf("pb: %.0f", m.pb)))
 	}
+
+	if len(m.bots) > 0 {
+		userProg := 1.0
+		placements := game.BotPlacements(m.bots, userProg)
+		// Inject user WPM into placements for informative display
+		for i := range placements {
+			if placements[i].IsUser {
+				placements[i].WPM = r.WPM
+			}
+		}
+		out = append(out, "", viewBotResults(p, placements))
+	} else if m.raceState == onlineResults {
+		out = append(out, "", m.viewOnlineResults(p))
+	}
+
+
 
 	return lipgloss.JoinVertical(lipgloss.Center, out...)
 }
@@ -143,6 +172,8 @@ func (m model) viewErrors(p theme.Palette) string {
 		row := errStyle.Render(strings.Join(errWords[i:end], "  "))
 		out = append(out, row)
 	}
+
+	out = append(out, "", lipgloss.NewStyle().Foreground(p.Foreground).Render("press any key to return"))
 
 	return lipgloss.JoinVertical(lipgloss.Center, out...)
 }

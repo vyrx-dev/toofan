@@ -98,7 +98,7 @@ func (m model) handleThemePicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.save()
 	case "esc":
 		// revert to saved theme
-		_, _, _, _, th := game.LoadConfig()
+		_, _, _, _, th, _, _ := game.LoadConfig()
 		theme.Current = theme.ByName(th)
 		m.pickingTheme = false
 	}

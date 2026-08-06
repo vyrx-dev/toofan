@@ -292,7 +292,7 @@ func (m model) viewProfile(p theme.Palette) string {
 	}
 
 	bests := lipgloss.JoinVertical(lipgloss.Left,
-		hi.Render("personal bests"),
+		hi.Render("pb"),
 		"",
 		headerLabels,
 		bestRowVert("15s", 15),

@@ -113,6 +113,27 @@ Yes. Press `ctrl+s` to save a backup and `ctrl+r` to restore from one. Backups a
 </details>
 
 <details>
+<summary>Does online mode require account?</summary>
+
+No. Online mode only requires a username that uniquely identifies you across the server. No account or registration is required.
+
+</details>
+
+<details>
+<summary>What data is collected in online mode?</summary>
+
+Only IP, room size choice, progress, your WPM, and your username are used during online mode. This data is used to exchange information between clients and log join/leave events. No history, PBs, config, or keystrokes are stored on the server.
+
+</details>
+
+<details>
+<summary>Does playing against bots require internet connection?</summary>
+
+No. All bots run locally on your machine. Only multiplayer mode requires internet.
+
+</details>
+
+<details>
 <summary>How do I update toofan?</summary>
 
 The update process depends on how you installed it:
@@ -176,6 +197,11 @@ We're always looking to add more. If your favorite programming language isn't su
 - [ ] AUR, Homebrew, Nix packages, Fedora & Ubuntu repos
 - [x] Fix top pane alignment to match bottom panes in profile
 
+## Contributors
+
+- Huge thanks to [@aaravmaloo](https://github.com/aaravmaloo) for creating online mode and implementing AI bots.
+
+(As a contributor, to get your name to mentions, please create a PR along with the contributions you made.)
 ## Contributing
 
 - New snippets : Drop a file in `internal/lang/data/<language>/lessons/` and rebuild
@@ -199,4 +225,3 @@ If you're using an AI coding assistant, read [`AGENTS.md`](AGENTS.md) first.
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=vyrx-dev/toofan&type=date&legend=top-left" />
  </picture>
 </a>
-<div align="ce

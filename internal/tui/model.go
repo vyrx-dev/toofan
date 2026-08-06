@@ -10,6 +10,10 @@ import (
 	"github.com/vyrx-dev/toofan/internal/theme"
 )
 
+type raceServerMsg struct {
+	Msg game.ServerMsg
+}
+
 var durations = []int{0, 15, 30, 60, 120}
 var difficulties = []string{"easy", "medium", "hard"}
 
@@ -57,25 +61,59 @@ type model struct {
 	pickingRestore bool
 	backups        []string
 	restoreCur     int
+
+	bots        []game.Bot
+	botCfg      game.BotConfig
+	pickingBots bool
+	botCountCur int
+	botDiffCur  int
+	botPickStep int
+
+	raceClient    *game.RaceClient
+	racePlayers   []game.RacePlayer
+	raceState     int
+	raceText      string
+	onlineCount   int
+	onlineActionCur int
+	onlineRoomID  string
+	onlineRoomIDBuf string
+	onlinePin     string
+	onlinePinBuf  string
+	onlineSizeCur int
+	onlineSize    int
+	onlineConfigCur int
+	isCreating    bool
+	onlineAutoStart bool
+	isRaceHost    bool
+	raceHostName  string
+	raceCanStart  bool
+	serverURL     string
+	pickingOnline bool
+	username      string
+	usernameBuf   string
+	botLastTick   time.Time
 }
 
 func New() model {
-	duration, mode, language, difficulty, th := game.LoadConfig()
+	duration, mode, language, difficulty, th, username, serverURL := game.LoadConfig()
 	theme.Current = theme.ByName(th)
 
 	return model{
-		game:     game.New(duration, mode, language, difficulty),
-		duration: duration,
-		mode:     mode,
-		lang:     language,
+		game:       game.New(duration, mode, language, difficulty),
+		duration:   duration,
+		mode:       mode,
+		lang:       language,
 		difficulty: difficulty,
+		username:   username,
+		serverURL:  serverURL,
+		onlineAutoStart: true,
 	}
 }
 
 type tick time.Time
 
 func (m model) isPaused() bool {
-	return m.pickingDur || m.pickingLang || m.pickingLesson || m.pickingTheme || m.showHelp
+	return m.pickingDur || m.pickingLang || m.pickingLesson || m.pickingTheme || m.pickingBots || m.pickingOnline || m.showHelp
 }
 
 func (m model) Init() tea.Cmd {
@@ -95,8 +133,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.active == screenTyping && m.game.Started() {
 			if m.isPaused() {
 				m.game.LastTick = time.Time(msg)
+				m.botLastTick = time.Time(msg)
 			} else {
 				m.game.Tick(time.Time(msg))
+
+				if len(m.bots) > 0 && !m.botLastTick.IsZero() {
+					dt := time.Time(msg).Sub(m.botLastTick)
+					game.TickBots(m.bots, dt, len(m.game.Text()))
+				}
+				m.botLastTick = time.Time(msg)
+
+				if m.raceState == onlineRacing && m.raceClient != nil {
+					prog := 0.0
+					if len(m.game.Text()) > 0 {
+						prog = float64(len(m.game.Input())) / float64(len(m.game.Text()))
+					}
+					wpm := m.game.Stats().WPM
+					m.raceClient.SendProgress(prog, wpm)
+				}
+
 				if m.game.Finished() {
 					m.result = m.game.Stats()
 					m.pb = game.GetPB(m.duration, m.mode)
@@ -111,6 +166,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						game.SavePB(m.duration, m.mode, m.result.WPM)
 					}
 
+					if m.raceState == onlineRacing {
+					if m.raceClient != nil {
+						m.raceClient.SendProgress(1.0, m.result.WPM)
+					}
+						m.raceState = onlineResults
+					}
 					m.active = screenResults
 					m.finishedAt = time.Now()
 				}
@@ -119,6 +180,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg {
 			return tick(t)
 		})
+
+	case raceServerMsg:
+		m, cmd := m.handleRaceServerMsg(msg.Msg)
+		return m, cmd
+	
+	case joinResultMsg:
+		return m.handleJoinResult(msg)
+	case startRaceResultMsg:
+		return m.handleStartRaceResult(msg)
+
+	case onlineResultsDoneMsg:
+		if m.raceState == onlineResults {
+			m.disconnectRace()
+			m.game = game.New(m.duration, m.mode, m.lang, m.difficulty)
+			m.active = screenTyping
+		}
+		return m, nil
 
 	case tea.KeyMsg:
 		if m.message != "" {
@@ -225,6 +303,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.pickingDifficulty = false
 			}
 		}
+		if m.pickingBots {
+			return m.handleBotPicker(msg)
+		}
 		if m.pickingLang {
 			return m.handlePicker(msg)
 		}
@@ -233,6 +314,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if m.pickingTheme {
 			return m.handleThemePicker(msg)
+		}
+		if m.pickingOnline {
+			return m.handleOnline(msg)
 		}
 
 		switch m.active {
@@ -286,7 +370,7 @@ func (m model) View() string {
 }
 
 func (m model) save() {
-	game.SaveConfig(m.duration, m.mode, m.lang, m.difficulty, theme.Current.Name)
+	game.SaveConfig(m.duration, m.mode, m.lang, m.difficulty, theme.Current.Name, m.username, m.serverURL)
 }
 
 func nextDur(cur int) int {
