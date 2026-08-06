@@ -49,8 +49,20 @@ A personal overview of your typing speed history, personal bests across duration
 
 ## Installation (toofan-online)
 
-> The curl install script and AUR package install the stable offline-only version
-> from `master`. To get the online build with multiplayer and bots, use one of these:
+> The `curl` and AUR install methods below are specific to the online build.
+> For the stable offline-only version, see the [`master` branch](https://github.com/vyrx-dev/toofan/tree/master).
+
+### curl (macOS & Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vyrx-dev/toofan/toofan-online/install-online.sh | sh
+```
+
+### AUR
+
+```bash
+paru -S toofan-online-bin
+```
 
 ### Go
 
@@ -69,7 +81,7 @@ mv toofan ~/.local/bin/
 
 ### GitHub Release
 
-Download the binary for your platform from the [releases page](https://github.com/vyrx-dev/toofan/releases).
+Download the binary for your platform from the [releases page](https://github.com/vyrx-dev/toofan/releases/tag/v1.0.0-online).
 
 ## FAQ
 
