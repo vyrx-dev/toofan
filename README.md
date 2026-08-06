@@ -31,6 +31,7 @@ _Practice with english words or real code snippets. No browser, no account, ever
 - **Ranks:** Automated progression system based on your typing speed.
 - **Offline & Local:** No browser, no account, zero telemetry.
 - **Racing:** Race against your own last 10 tests.
+- **Multiplayer & Bots:** Available on the [`toofan-online`](https://github.com/vyrx-dev/toofan/tree/toofan-online) branch — race against AI bots or compete with others online.
 
 <p align="center">
   <img src="assets/code-snippets-grid.png" width="48%" title="Real Code Snippets" alt="Real Code Snippets" />
