@@ -31,7 +31,7 @@ _Practice with english words or real code snippets. No browser, no account, ever
 - **Ranks:** Automated progression system based on your typing speed.
 - **Offline & Local:** No browser, no account, zero telemetry.
 - **Racing:** Race against your own last 10 tests.
-- **Multiplayer & Bots:** Available on the [`toofan-online`](https://github.com/vyrx-dev/toofan/tree/toofan-online) branch — race against AI bots or compete with others online.
+- **Multiplayer & Bots:** Race against AI bots or compete with others online. See the [`toofan-online`](https://github.com/vyrx-dev/toofan/tree/toofan-online) branch.
 
 <p align="center">
   <img src="assets/code-snippets-grid.png" width="48%" title="Real Code Snippets" alt="Real Code Snippets" />
@@ -200,7 +200,7 @@ _(If you built it from source and moved it globally, run `sudo rm /usr/local/bin
 
 Yes. Everything runs locally and is embedded in the binary. No internet needed.
 
-Looking for multiplayer and bot racing? Check out the [`toofan-online`](https://github.com/vyrx-dev/toofan/tree/toofan-online) branch — it's a separate build that adds online races and AI bots while keeping solo mode fully offline.
+Looking for multiplayer and bot racing? Check out the [`toofan-online`](https://github.com/vyrx-dev/toofan/tree/toofan-online) branch. It's a separate build that adds online races and AI bots while keeping solo mode fully offline.
 
 </details>
 
