@@ -11,14 +11,11 @@ _Practice with english words or real code snippets. No browser, no account, ever
 
 </div>
 
-> **toofan-online** — this branch adds multiplayer racing and AI bots on top of toofan.
-> It's an early release, so things might break. If you run into bugs or have ideas,
-> [open an issue](https://github.com/vyrx-dev/toofan/issues) — that really helps.
->
-> For the stable, offline-only version, see the
-> [`master` branch](https://github.com/vyrx-dev/toofan/tree/master).
-
 ---
+
+> **This is the `toofan-online` branch.** It adds multiplayer racing and AI bots.
+> Still early, so expect a few rough edges. Found a bug? [Open an issue](https://github.com/vyrx-dev/toofan/issues).
+> Want the stable offline-only version? Head to the [`master` branch](https://github.com/vyrx-dev/toofan/tree/master).
 
 ## Features
 
@@ -127,25 +124,23 @@ No. You just pick a username when you start a multiplayer race. No sign-up, no e
 <details>
 <summary>What data is shared during multiplayer?</summary>
 
-Only what's needed to make the race work:
+Only what's needed for the race to work:
 
-- **Your username** — so other players can see who they're racing against
-- **Your IP address** — used server-side to prevent duplicate sessions (not stored permanently)
-- **Your typing progress and WPM** — so the race bars update in real-time
-- **Room settings** — mode, language, difficulty, duration
+- **Your username** so other players can see who they're racing
+- **Your IP address** to prevent duplicate sessions (not stored after the race)
+- **Your typing progress and WPM** so the race bars update live
+- **Room settings** like mode, language, difficulty, duration
 
-That's it. Your typing history, personal bests, config, and individual keystrokes never leave your machine. The server doesn't store any of this data after the race ends — it only exists in memory while the room is active.
+That's it. Your typing history, personal bests, config, and keystrokes never leave your machine. None of this is saved on the server after a race ends.
 
 </details>
 
 <details>
 <summary>Is multiplayer safe to use?</summary>
 
-The multiplayer server is a simple Go HTTP server — no database, no persistent storage, no analytics. All race data lives in memory and is discarded when a room closes or the server restarts.
+The server is a simple Go HTTP server. No database, no persistent storage, no analytics. Race data only lives in memory and goes away when the room closes or the server restarts.
 
-The connection uses standard HTTP (Server-Sent Events for real-time updates, regular POST requests for progress). The server code is fully open source in the `race_server/` directory of this branch if you want to inspect it yourself, or self-host your own instance.
-
-If you prefer to stay fully offline, just don't press `ctrl+n`. Solo mode and bot racing work with zero internet connection.
+The server code is fully open source in the `race_server/` directory if you want to look through it or run your own. If you'd rather stay offline, just don't press `ctrl+n`. Solo mode and bots work without any internet.
 
 </details>
 
@@ -160,14 +155,14 @@ go build -o toofan-server .
 ./toofan-server --port 8525
 ```
 
-Then set your server URL in toofan. The server has no external dependencies — it's just Go standard library.
+Then set your server URL in toofan. No external dependencies needed, just Go standard library.
 
 </details>
 
 <details>
 <summary>Do bots need internet?</summary>
 
-No. Bots run entirely on your machine. They simulate typing based on your recent average WPM, with variation added so they don't feel robotic. No network calls involved.
+No. Bots run entirely on your machine. They match your recent average speed with some variation so it feels natural. No internet needed.
 
 </details>
 
@@ -205,9 +200,8 @@ _(If you built it from source and moved it globally, run `sudo rm /usr/local/bin
 <details>
 <summary>Does it work offline?</summary>
 
-Yes. Solo mode and bot racing are fully offline — everything is embedded in the binary.
-Only multiplayer mode (`ctrl+n`) connects to a server. If you never press `ctrl+n`,
-toofan-online behaves exactly like the stable version.
+Yes. Solo mode and bots are fully offline. Everything is baked into the binary.
+Only multiplayer (`ctrl+n`) needs a connection. If you never press `ctrl+n`, it works exactly like the stable version.
 
 </details>
 
