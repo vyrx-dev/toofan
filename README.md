@@ -64,7 +64,7 @@ paru -S toofan-online-bin
 ### Go
 
 ```bash
-go install github.com/vyrx-dev/toofan@v1.0.0-online
+go install github.com/vyrx-dev/toofan@v1.0.1-online
 ```
 
 ### Build from Source
@@ -78,7 +78,7 @@ mv toofan ~/.local/bin/
 
 ### GitHub Release
 
-Download the binary for your platform from the [releases page](https://github.com/vyrx-dev/toofan/releases/tag/v1.0.0-online).
+Download the binary for your platform from the [releases page](https://github.com/vyrx-dev/toofan/releases/tag/v1.0.1-online).
 
 ## FAQ
 
@@ -172,7 +172,7 @@ No. Bots run entirely on your machine. They match your recent average speed with
 **Go:**
 
 ```bash
-go install github.com/vyrx-dev/toofan@v1.0.0-online
+go install github.com/vyrx-dev/toofan@v1.0.1-online
 ```
 
 **Build from source:**

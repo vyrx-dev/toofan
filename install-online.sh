@@ -13,7 +13,7 @@ set -e
         exit 1
     fi
 
-    VERSION="1.0.0-online"
+    VERSION="1.0.1-online"
     echo "Fetching toofan-online v${VERSION}..."
 
     URL="https://github.com/vyrx-dev/toofan/releases/download/v${VERSION}/toofan_${VERSION}_${OS}_${ARCH}.tar.gz"
