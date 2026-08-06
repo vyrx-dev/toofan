@@ -237,10 +237,12 @@ If you're using an AI coding assistant, read [`AGENTS.md`](AGENTS.md) first.
 
 ---
 
-<a href="https://www.star-history.com/#vyrx-dev/toofan&type=date&legend=top-left">
+## Star History
+
+<a href="https://www.star-history.com/?type=date&legend=top-left&repos=vyrx-dev%2Ftoofan">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=vyrx-dev/toofan&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=vyrx-dev/toofan&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=vyrx-dev/toofan&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=vyrx-dev/toofan&type=date&theme=dark&legend=top-left&sealed_token=M-6a5rZCxpnhK04BANGM0UJMmacDgWVw4N2wIlVDo0oZhmnFQ6Uf6OwYRwvGRsHaX4ipFBaquHOpSrXk8aqiiaX2Zx79fqKBLH0UHgd-sO5ZCXwspBDSqA" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=vyrx-dev/toofan&type=date&legend=top-left&sealed_token=M-6a5rZCxpnhK04BANGM0UJMmacDgWVw4N2wIlVDo0oZhmnFQ6Uf6OwYRwvGRsHaX4ipFBaquHOpSrXk8aqiiaX2Zx79fqKBLH0UHgd-sO5ZCXwspBDSqA" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=vyrx-dev/toofan&type=date&legend=top-left&sealed_token=M-6a5rZCxpnhK04BANGM0UJMmacDgWVw4N2wIlVDo0oZhmnFQ6Uf6OwYRwvGRsHaX4ipFBaquHOpSrXk8aqiiaX2Zx79fqKBLH0UHgd-sO5ZCXwspBDSqA" />
  </picture>
 </a>
