@@ -11,6 +11,13 @@ _Practice with english words or real code snippets. No browser, no account, ever
 
 </div>
 
+> **toofan-online** — this branch adds multiplayer racing and AI bots on top of toofan.
+> It's an early release, so things might break. If you run into bugs or have ideas,
+> [open an issue](https://github.com/vyrx-dev/toofan/issues) — that really helps.
+>
+> For the stable, offline-only version, see the
+> [`master` branch](https://github.com/vyrx-dev/toofan/tree/master).
+
 ---
 
 ## Features
@@ -18,13 +25,12 @@ _Practice with english words or real code snippets. No browser, no account, ever
 - **Two Modes:** Practice standard English words or real-world code snippets.
 - **Curated Lessons:** Hand-written, topic-based code exercises across multiple languages.
 - **Dynamic Themes:** Cycle between multiple aesthetic terminal themes (`ctrl+t`).
-- **Bot Racing:** Race against 1-5 customizable AI bots that adapt to your speed (`ctrl+b`).
-- **Multiplayer Racing:** Compete with others in real-time via the built-in race server (`ctrl+n`).
+- **Bot Racing:** Race against 1-5 AI bots that adapt to your typing speed (`ctrl+b`).
+- **Multiplayer Racing:** Compete with others in real-time online races (`ctrl+n`).
 - **Live Metrics:** Real-time WPM speed and accuracy tracking.
 - **Error Review:** See exactly which words you mistyped after every test.
 - **Ranks:** Automated progression system based on your typing speed.
-- **Offline & Local:** No browser, no account, and zero tracking. All data stays on your machine (except for real-time stats shared during multiplayer races).
-- **Data Collection in multiplayer:** While playing multiplayer, to make sure you have a smooth experience, we collect only the username, IP address (required for preventing multiple multiplayer sessions for the same user), room size choice, progress and your WPM. We DO NOT collect history, PBs, config, keystrokes, or anything except the above listed. Our commitment to privacy is absolute.
+- **Offline-first:** Solo mode and bots work with zero internet. Only multiplayer needs a connection.
 
 <p align="center">
   <img src="assets/code-snippets-grid.png" width="48%" title="Real Code Snippets" alt="Real Code Snippets" />
@@ -41,42 +47,29 @@ A personal overview of your typing speed history, personal bests across duration
 <img src="assets/profile-new.png" width="95%">
 </div>
 
-## Installation
+## Installation (toofan-online)
 
-⚠️ **Note:** Always take a backup (`ctrl+s`) before updating toofan.
-
-### curl (macOS & Linux)
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/vyrx-dev/toofan/master/install.sh | sh
-```
-
-### AUR
-
-```bash
-paru -S toofan-bin
-```
+> The curl install script and AUR package install the stable offline-only version
+> from `master`. To get the online build with multiplayer and bots, use one of these:
 
 ### Go
 
 ```bash
-go install github.com/vyrx-dev/toofan@latest
+go install github.com/vyrx-dev/toofan@v1.0.0-online
 ```
-
-### Homebrew / Nix / Ubuntu / Fedora
-
-Coming soon.
 
 ### Build from Source
 
-If you prefer building manually (requires Go):
-
-```sh
-git clone https://github.com/vyrx-dev/toofan.git
+```bash
+git clone -b toofan-online https://github.com/vyrx-dev/toofan.git
 cd toofan
 go build -o toofan .
 mv toofan ~/.local/bin/
 ```
+
+### GitHub Release
+
+Download the binary for your platform from the [releases page](https://github.com/vyrx-dev/toofan/releases).
 
 ## FAQ
 
@@ -100,7 +93,7 @@ accuracy = (total_chars - all_mistakes) / total_chars × 100
 
 Everything lives in `~/.config/toofan/` as plain text files:
 
-- `config.txt` : Your selected duration, mode, language, and theme
+- `config.txt` : Your selected duration, mode, language, theme, and multiplayer username
 - `results.txt` : Every test result (date, wpm, accuracy, duration, mode)
 - `pb.txt` : Your personal bests per mode and duration
 </details>
@@ -113,49 +106,72 @@ Yes. Press `ctrl+s` to save a backup and `ctrl+r` to restore from one. Backups a
 </details>
 
 <details>
-<summary>Does online mode require account?</summary>
+<summary>Does multiplayer need an account?</summary>
 
-No. Online mode only requires a username that uniquely identifies you across the server. No account or registration is required.
-
-</details>
-
-<details>
-<summary>What data is collected in online mode?</summary>
-
-Only IP, room size choice, progress, your WPM, and your username are used during online mode. This data is used to exchange information between clients and log join/leave events. No history, PBs, config, or keystrokes are stored on the server.
+No. You just pick a username when you start a multiplayer race. No sign-up, no email, no password. The username is stored locally in your config file so you don't have to type it every time.
 
 </details>
 
 <details>
-<summary>Does playing against bots require internet connection?</summary>
+<summary>What data is shared during multiplayer?</summary>
 
-No. All bots run locally on your machine. Only multiplayer mode requires internet.
+Only what's needed to make the race work:
+
+- **Your username** — so other players can see who they're racing against
+- **Your IP address** — used server-side to prevent duplicate sessions (not stored permanently)
+- **Your typing progress and WPM** — so the race bars update in real-time
+- **Room settings** — mode, language, difficulty, duration
+
+That's it. Your typing history, personal bests, config, and individual keystrokes never leave your machine. The server doesn't store any of this data after the race ends — it only exists in memory while the room is active.
 
 </details>
 
 <details>
-<summary>How do I update toofan?</summary>
+<summary>Is multiplayer safe to use?</summary>
 
-The update process depends on how you installed it:
+The multiplayer server is a simple Go HTTP server — no database, no persistent storage, no analytics. All race data lives in memory and is discarded when a room closes or the server restarts.
 
-**curl (Quick Install):**
-Just run the install command again. It will automatically download and replace the old binary.
+The connection uses standard HTTP (Server-Sent Events for real-time updates, regular POST requests for progress). The server code is fully open source in the `race_server/` directory of this branch if you want to inspect it yourself, or self-host your own instance.
+
+If you prefer to stay fully offline, just don't press `ctrl+n`. Solo mode and bot racing work with zero internet connection.
+
+</details>
+
+<details>
+<summary>Can I run my own multiplayer server?</summary>
+
+Yes. The server is a standalone Go binary in `race_server/`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/vyrx-dev/toofan/master/install.sh | sh
+cd race_server
+go build -o toofan-server .
+./toofan-server --port 8525
 ```
+
+Then set your server URL in toofan. The server has no external dependencies — it's just Go standard library.
+
+</details>
+
+<details>
+<summary>Do bots need internet?</summary>
+
+No. Bots run entirely on your machine. They simulate typing based on your recent average WPM, with variation added so they don't feel robotic. No network calls involved.
+
+</details>
+
+<details>
+<summary>How do I update toofan-online?</summary>
 
 **Go:**
 
 ```bash
-go install github.com/vyrx-dev/toofan@latest
+go install github.com/vyrx-dev/toofan@v1.0.0-online
 ```
 
-**AUR:**
-Use your AUR helper to update the package:
+**Build from source:**
 
 ```bash
-paru -Syu toofan-bin
+cd toofan && git pull && go build -o toofan . && mv toofan ~/.local/bin/
 ```
 
 </details>
@@ -177,7 +193,9 @@ _(If you built it from source and moved it globally, run `sudo rm /usr/local/bin
 <details>
 <summary>Does it work offline?</summary>
 
-Yes. Everything runs locally and is embedded in the binary. No internet needed.
+Yes. Solo mode and bot racing are fully offline — everything is embedded in the binary.
+Only multiplayer mode (`ctrl+n`) connects to a server. If you never press `ctrl+n`,
+toofan-online behaves exactly like the stable version.
 
 </details>
 
@@ -192,9 +210,11 @@ We're always looking to add more. If your favorite programming language isn't su
 
 - [x] Curl script installation (macOS & Linux)
 - [x] Proper documentation for AI and contributors
-- [ ] More language support (python, rust, c, typescript, etc.)
+- [x] More language support (Go, Rust, Python, C, C++, C#, TypeScript, Java)
 - [x] Difficulty levels for english words
-- [ ] AUR, Homebrew, Nix packages, Fedora & Ubuntu repos
+- [x] Bot racing
+- [x] Multiplayer racing
+- [ ] Homebrew, Nix, Fedora & Ubuntu packages
 - [x] Fix top pane alignment to match bottom panes in profile
 
 ## Contributors
