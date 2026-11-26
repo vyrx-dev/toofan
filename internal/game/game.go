@@ -233,9 +233,11 @@ func (g *Game) Stats() Stats {
 		return Stats{}
 	}
 
+	// Floor the sample at one second so the first keystrokes don't read as an
+	// inflated wpm from dividing by a near-zero duration.
 	mins := g.elapsed.Minutes()
-	if mins < 0.001 {
-		mins = 0.001
+	if mins < 1.0/60.0 {
+		mins = 1.0 / 60.0
 	}
 
 	// count only real typed chars (skip auto-inserted newlines)
